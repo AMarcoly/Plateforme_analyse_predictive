@@ -18,3 +18,16 @@ Choisir un jeu de données ouvert pertinent et volumineux (data.gouv.fr, Kaggle)
 	•	Comparer métriques, documenter résultats (Jupyter Notebook, Markdown).
 	•	Déployer une API REST pour l’inférence (Flask ou FastAPI, Heroku).
 	•	Versionner sur Git, rédiger README complet
+
+
+
+
+
+	•	main.py : script orchestration principale (chargement, traitement, fenêtre UI ou API)
+	•	data_preprocessing.py : nettoyage, exploration, visualisation (Pandas, seaborn)
+	•	model_training.py : définition, entraînement, évaluation des modèles ML (scikit-learn)
+	•	hyperparameter_tuning.py : optimisation des hyperparamètres (GridSearch, RandomSearch)
+	•	api_server.py : API REST pour déploiement inference (Flask ou FastAPI)
+	•	utils.py : fonctions utilitaires communes (gestion chemins, logger)
+	•	requirements.txt : liste des dépendances Python
+	•	README.md : documentation projet
