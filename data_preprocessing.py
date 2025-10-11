@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 class DataPreprocessor:
-    def __init__(self,file_path: str):
+    def __init__(self, file_path: str):
         self.data = pd.read_csv(file_path)
         self.cleaned_data = None
 
@@ -12,11 +12,11 @@ class DataPreprocessor:
 
         # Remplir Embarked par la modalité la plus fréquente
         if 'Embarked' in self.data.columns:
-            self.data['Embarked'].fillna(self.data['Embarked'].mode().iloc[0], inplace=True)
+            self.data['Embarked'] = self.data['Embarked'].fillna(self.data['Embarked'].mode().iloc[0])
 
         # Remplir Fare manquant par la médiane
         if 'Fare' in self.data.columns:
-            self.data['Fare'].fillna(self.data['Fare'].median(), inplace=True)
+            self.data['Fare'] = self.data['Fare'].fillna(self.data['Fare'].median())
 
         # Extraire Title depuis Name (ex: Mr, Mrs, Miss, Master, etc.)
         if 'Name' in self.data.columns:
@@ -31,16 +31,16 @@ class DataPreprocessor:
         if 'Age' in self.data.columns:
             self.data['Age'] = self.data['Age'].astype(float)
             age_median = self.data.groupby(['Pclass','Sex'])['Age'].transform('median')
-            self.data['Age'].fillna(age_median, inplace=True)
+            self.data['Age'] = self.data['Age'].fillna(age_median)
             # Si certains restent NA (groupes vides), utiliser la médiane globale
-            self.data['Age'].fillna(self.data['Age'].median(), inplace=True)
+            self.data['Age'] = self.data['Age'].fillna(self.data['Age'].median())
 
         # Traitement de Cabin -> extraire Deck (première lettre) ou 'U' pour unknown
         if 'Cabin' in self.data.columns:
             self.data['Deck'] = self.data['Cabin'].astype(str).str[0]
-            self.data['Deck'] = self.data['Deck'].replace('n', 'U')  # pandas casts NaN to 'nan' -> 'n'
+            self.data['Deck'] = self.data['Deck'].replace('n', 'U')
             self.data['Deck'] = self.data['Deck'].replace('N', 'U')
-            self.data['Deck'].fillna('U', inplace=True)
+            self.data['Deck'] = self.data['Deck'].fillna('U')
 
         # Encodage simple de Sex en binaire
         if 'Sex' in self.data.columns:
@@ -66,10 +66,9 @@ class DataPreprocessor:
         # Stocker les données nettoyées
         self.cleaned_data = self.data.copy()
         return self.cleaned_data
-    
+
     def get_data(self):
         return self.cleaned_data
-
 
 if __name__ == "__main__":
     data = DataPreprocessor("data_titanic/train.csv")
