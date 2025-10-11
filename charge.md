@@ -31,3 +31,5 @@ Choisir un jeu de données ouvert pertinent et volumineux (data.gouv.fr, Kaggle)
 	•	utils.py : fonctions utilitaires communes (gestion chemins, logger)
 	•	requirements.txt : liste des dépendances Python
 	•	README.md : documentation projet
+
+Machines ⮕ Données de journal ⮕ Stockage de données ⮕ Service API ⮕ Tableau de bord de l’interface utilisateur

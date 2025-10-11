@@ -4,7 +4,7 @@
 |-----------|----------------------------------------|--------------------------------------------|
 | survival  | Survival                               | 0 = No, 1 = Yes                          |
 | pclass    | Ticket class                           | 1 = 1st, 2 = 2nd, 3 = 3rd               |
-| sex       | Sex                                    |                                            |
+| sex       | Sex                                    | 0 = Mr 1 = Miss, Mrs                     |
 | Age       | Age in years                           |                                            |
 | sibsp     | # of siblings / spouses aboard the Titanic |                                       |
 | parch     | # of parents / children aboard the Titanic |                                       |
