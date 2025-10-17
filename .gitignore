@@ -29,3 +29,4 @@ htmlcov/
 migrations/
 celerybeat-schedule
 instance/
+charge.md
