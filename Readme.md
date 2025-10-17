@@ -7,7 +7,8 @@ Ce projet implémente un pipeline complet de machine learning sur un dataset ope
 
 ## Structure
 - `main.py` : workflow principal
-- `data_preprocessing.py` : nettoyage et visualisation des données
+- `data_preprocessing.py` : nettoyage des données
+- `data_visualization.py` : visualisation des données
 - `model_training.py` : entraînement et évaluation des modèles
 - `hyperparameter_tuning.py` : optimisation des hyperparamètres
 - `api_server.py` : déploiement de l’API REST
