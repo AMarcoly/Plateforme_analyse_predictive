@@ -21,10 +21,9 @@ Choisir un jeu de données ouvert pertinent et volumineux (data.gouv.fr, Kaggle)
 
 
 
-
-
 	•	main.py : script orchestration principale (chargement, traitement, fenêtre UI ou API)
-	•	data_preprocessing.py : nettoyage, exploration, visualisation (Pandas, seaborn)
+	•	data_preprocessing.py : nettoyage, exploration 
+	• data_visualization.py : visualiser (Pandas, seaborn)
 	•	model_training.py : définition, entraînement, évaluation des modèles ML (scikit-learn)
 	•	hyperparameter_tuning.py : optimisation des hyperparamètres (GridSearch, RandomSearch)
 	•	api_server.py : API REST pour déploiement inference (Flask ou FastAPI)
