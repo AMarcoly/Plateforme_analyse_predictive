@@ -80,7 +80,7 @@ class DataPreprocessor:
             self.data['IsAlone'] = (self.data['FamilySize'] == 1).astype(int)
 
         # Drop colonnes peu utiles
-        drop_cols = [c for c in ['PassengerId','Name','Ticket','Cabin'] if c in self.data.columns]
+        drop_cols = [c for c in ['Name','Ticket','Cabin'] if c in self.data.columns]
         if drop_cols:
             self.data.drop(columns=drop_cols, inplace=True)
 
