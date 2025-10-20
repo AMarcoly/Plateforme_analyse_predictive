@@ -89,8 +89,16 @@ class DataPreprocessor:
             data_clean.drop(columns=drop_cols, inplace=True)
 
         #  Conversion des colonnes texte restantes en type catégoriel
-        for col in data_clean.select_dtypes(include=['object']).columns:
-            data_clean[col] = data_clean[col].astype('category')
+        categorical_columns = ['Embarked', 'Title', 'Deck']
+    
+        for col in categorical_columns:
+            if col in data_clean.columns:
+                # Conversion en category si ce n'est pas déjà fait
+                if data_clean[col].dtype.name != 'category':
+                    data_clean[col] = data_clean[col].astype('category')
+        
+        # Application du one-hot encoding
+        data_clean = pd.get_dummies(data_clean, columns=categorical_columns, drop_first=True)
 
         # Stockeage  et retour DataFrame nettoyé
         self.cleaned_data = data_clean
