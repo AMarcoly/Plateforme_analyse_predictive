@@ -92,6 +92,7 @@ if __name__ == "__main__":
 
     # Résultats
     scores = trainer.get_scores()
+    
     # Affichage
     df_scores = print_model_scores(scores)
     print_performance_analysis(scores)
