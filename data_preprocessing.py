@@ -1,104 +1,107 @@
 import pandas as pd
 import numpy as np
-import matplotlib as plt
 import seaborn as sns
 
 class DataPreprocessor:
     """
     Classe pour le prétraitement des données du jeu Titanic.
-    Args:
-        file_path (str): Chemin vers le fichier CSV contenant les données.
-    Attributs:
-        data (pd.DataFrame): Données brutes chargées depuis le fichier.
-        cleaned_data (pd.DataFrame): Données nettoyées après prétraitement.
-    Méthodes:
-        clean_data():
-            Effectue les étapes de nettoyage et d'ingénierie des variables :
-                - Suppression des doublons exacts.
-                - Imputation des valeurs manquantes pour 'Embarked' (mode), 'Fare' (médiane), et 'Age' (médiane par groupe).
-                - Extraction et normalisation du titre depuis 'Name'.
-                - Extraction du pont ('Deck') depuis 'Cabin', gestion des valeurs inconnues.
-                - Encodage binaire de la variable 'Sex'.
-                - Création des variables dérivées 'FamilySize' et 'IsAlone'.
-                - Suppression des colonnes peu informatives pour la modélisation.
-                - Conversion des colonnes de type objet en catégorie.
-            Retourne le DataFrame nettoyé.
-        get_data():
-            Retourne les données nettoyées (cleaned_data).
     """
     def __init__(self, file_path: str):
+        # Chargement des données brutes depuis le fichier CSV
         self.data = pd.read_csv(file_path)
+        # Initialisation de l'attribut pour stocker les données nettoyées
         self.cleaned_data = None
 
     def clean_data(self):
-        # Suppression des doublons exacts
-        self.data.drop_duplicates(inplace=True)
+        # Création d'une copie des données brutes pour préserver l'original
+        data_clean = self.data.copy()
 
-        # Embarked -> mode
-        if 'Embarked' in self.data.columns:
-            self.data['Embarked'] = self.data['Embarked'].fillna(self.data['Embarked'].mode().iloc[0])
+        # Suppression des doublons exacts (lignes identiques)
+        data_clean.drop_duplicates(inplace=True)
 
-        # Fare -> médiane
-        if 'Fare' in self.data.columns:
-            self.data['Fare'] = self.data['Fare'].fillna(self.data['Fare'].median())
+        # Imputation des valeurs manquantes pour 'Embarked' avec le mode (valeur la plus fréquente)
+        if 'Embarked' in data_clean.columns:
+            # Récupère la valeur la plus fréquente, utilise 'S' si aucun mode n'existe
+            embarked_mode = data_clean['Embarked'].mode()
+            mode_value = embarked_mode.iloc[0] if not embarked_mode.empty else 'S'
+            # Remplace les NaN par la valeur du mode
+            data_clean['Embarked'] = data_clean['Embarked'].fillna(mode_value)
 
-        # Title depuis Name
-        if 'Name' in self.data.columns:
-            self.data['Title'] = self.data['Name'].str.extract(r',\s*([^\.]+)\.', expand=False)
-            self.data['Title'] = self.data['Title'].astype(str).str.strip()
-            # enlever 'the ' au début si présent
-            self.data['Title'] = self.data['Title'].str.replace(r'^\s*the\s+', '', regex=True)
-            # Harmonisation
-            self.data['Title'] = self.data['Title'].replace(['Mlle', 'Ms'], 'Miss')
-            self.data['Title'] = self.data['Title'].replace(['Mme'], 'Mrs')
+        # Imputation des valeurs manquantes pour 'Fare' avec la médiane
+        if 'Fare' in data_clean.columns:
+            # Calcule la médiane des tarifs et remplace les NaN
+            fare_median = data_clean['Fare'].median()
+            data_clean['Fare'] = data_clean['Fare'].fillna(fare_median)
+
+        # Extraction et normalisation du titre depuis la colonne 'Name'
+        if 'Name' in data_clean.columns:
+            # Regex pour extraire le titre entre la virgule et le point (ex: "Mr", "Mrs")
+            data_clean['Title'] = data_clean['Name'].str.extract(r',\s*([^\.]+)\.', expand=False)
+            # Suppression les espaces superflus
+            data_clean['Title'] = data_clean['Title'].astype(str).str.strip()
+            # Nettoyage préfixes 
+            data_clean['Title'] = data_clean['Title'].str.replace(r'^\s*the\s+', '', regex=True)
+            # Harmonisation des titres équivalents
+            data_clean['Title'] = data_clean['Title'].replace(['Mlle', 'Ms'], 'Miss')  # Mademoiselle -> Miss
+            data_clean['Title'] = data_clean['Title'].replace(['Mme'], 'Mrs')  # Madame -> Mrs
+            # Regroupement des titres rares dans une catégorie "Rare"
             rare_titles = ['Lady','Countess','Capt','Col','Don','Dr','Major','Rev','Sir','Jonkheer','Dona']
-            self.data['Title'] = self.data['Title'].apply(lambda t: 'Rare' if t in rare_titles else t)
+            data_clean['Title'] = data_clean['Title'].apply(lambda t: 'Rare' if t in rare_titles else t)
 
-        # Imputation Age par médiane groupée (Pclass, Sex)
-        if 'Age' in self.data.columns:
-            self.data['Age'] = self.data['Age'].astype(float)
-            if set(['Pclass','Sex']).issubset(self.data.columns):
-                age_median = self.data.groupby(['Pclass','Sex'])['Age'].transform('median')
-                self.data['Age'] = self.data['Age'].fillna(age_median)
-            self.data['Age'] = self.data['Age'].fillna(self.data['Age'].median())
+        # Imputation de l'âge avec la médiane par groupe (Classe, Sexe)
+        if 'Age' in data_clean.columns:
+            # Conversion en float pour garantir le type numérique
+            data_clean['Age'] = data_clean['Age'].astype(float)
+            # Vérifie que les colonnes de regroupement existent
+            if set(['Pclass','Sex']).issubset(data_clean.columns):
+                # Calcule la médiane d'âge pour chaque combinaison Pclass/Sexe
+                age_median = data_clean.groupby(['Pclass','Sex'])['Age'].transform('median')
+                # Remplace les NaN par la médiane de leur groupe
+                data_clean['Age'] = data_clean['Age'].fillna(age_median)
+            # Imputation finale avec la médiane globale si des NaN persistent
+            data_clean['Age'] = data_clean['Age'].fillna(data_clean['Age'].median())
 
-        # Deck depuis Cabin
-        if 'Cabin' in self.data.columns:
-            self.data['Deck'] = self.data['Cabin'].astype(str).str[0]
-            self.data['Deck'] = self.data['Deck'].replace({'n': 'U', 'N': 'U'})
-            self.data['Deck'] = self.data['Deck'].fillna('U')
-            # Regrouper T très rare en U
-            self.data['Deck'] = self.data['Deck'].where(~self.data['Deck'].isin(['T']), 'U')
+        # Extraction du pont (Deck) depuis la première lettre de 'Cabin'
+        if 'Cabin' in data_clean.columns:
+            # Prend la première lettre de la cabine (ex: "C123" -> "C")
+            data_clean['Deck'] = data_clean['Cabin'].astype(str).str[0]
+            # Normalise les valeurs 'n' et 'N' (créées par les NaN) en 'U' pour Unknown
+            data_clean['Deck'] = data_clean['Deck'].replace({'n': 'U', 'N': 'U'})
+            # Remplace les valeurs manquantes par 'U'
+            data_clean['Deck'] = data_clean['Deck'].fillna('U')
+            # Regroupe le pont 'T' (très rare) avec 'U'
+            data_clean['Deck'] = data_clean['Deck'].where(~data_clean['Deck'].isin(['T']), 'U')
 
-        # Encodage binaire de Sex
-        if 'Sex' in self.data.columns:
-            self.data['Sex'] = self.data['Sex'].map({'male': 0, 'female': 1}).astype(int)
+        #  Encodage binaire de la variable Sex (male: 0, female: 1)
+        if 'Sex' in data_clean.columns:
+            data_clean['Sex'] = data_clean['Sex'].map({'male': 0, 'female': 1}).astype(int)
 
-        # Features dérivées
-        if set(['SibSp','Parch']).issubset(self.data.columns):
-            self.data['FamilySize'] = self.data['SibSp'] + self.data['Parch'] + 1
-            self.data['IsAlone'] = (self.data['FamilySize'] == 1).astype(int)
+        #  Création de variables dérivées sur la composition familiale
+        if set(['SibSp','Parch']).issubset(data_clean.columns):
+            # Taille de la famille = frères/soeurs + parents/enfants + le passager lui-même
+            data_clean['FamilySize'] = data_clean['SibSp'] + data_clean['Parch'] + 1
+            # Indicateur binaire pour les passagers voyageant seuls
+            data_clean['IsAlone'] = (data_clean['FamilySize'] == 1).astype(int)
 
-        # Drop colonnes peu utiles
-        drop_cols = [c for c in ['Name','Ticket','Cabin'] if c in self.data.columns]
+        #  Suppression des colonnes peu informatives pour la modélisation
+        drop_cols = [c for c in ['Name','Ticket','Cabin'] if c in data_clean.columns]
         if drop_cols:
-            self.data.drop(columns=drop_cols, inplace=True)
+            data_clean.drop(columns=drop_cols, inplace=True)
 
-        # Convertir objets restants en catégories
-        for col in self.data.select_dtypes(include=['object']).columns:
-            self.data[col] = self.data[col].astype('category')
+        #  Conversion des colonnes texte restantes en type catégoriel
+        for col in data_clean.select_dtypes(include=['object']).columns:
+            data_clean[col] = data_clean[col].astype('category')
 
-        # pipeline sklearn pour la gestion de l’encodage.
-        self.cleaned_data = self.data.copy()
+        # Stockeage  et retour DataFrame nettoyé
+        self.cleaned_data = data_clean
         return self.cleaned_data
 
     def get_data(self):
+        # Retourne les données nettoyées (None si clean_data() n'a pas été appelé)
         return self.cleaned_data
-    
-    # Data visualization 
-
 
 if __name__ == "__main__":
+    # Test
     data = DataPreprocessor("data_titanic/train.csv")
     data.clean_data()
     print(data.get_data().head())
