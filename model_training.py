@@ -3,6 +3,7 @@ from data_preprocessing import DataPreprocessor
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
+from utils import print_model_scores, plot_model_comparison, print_performance_analysis
 from sklearn.metrics import accuracy_score, precision_score, recall_score
 
 class ModelTraining:
@@ -11,84 +12,53 @@ class ModelTraining:
         self.data_test = data_test
         self.scores = {}
 
-    def _prepare_features(self, X):
-        # Encodage one-hot
-        cols_to_encode = ['Embarked', 'Title', 'Deck']
-        X = pd.get_dummies(X, columns=cols_to_encode, drop_first=True)
-        return X
+    def _align_features(self, X_train, X_test):
+        """Aligne les colonnes entre train et test"""
+        # Garde seulement les colonnes communes
+        common_cols = X_train.columns.intersection(X_test.columns)
+        return X_train[common_cols], X_test[common_cols]
 
-    def fit_predict_evaluate(self, model, X_train, y_train, X_test, y_test=None):
+    def _train_and_evaluate(self, model, model_name):
+        """Méthode unique pour l'entraînement et l'évaluation"""
+        # Préparation des données
+        X_train = self.data_train.drop('Survived', axis=1)
+        y_train = self.data_train['Survived']
+        X_test = self.data_test.drop('Survived', axis=1)
+        y_test = self.data_test['Survived']
+        
+        # Alignement des features (SUPPRIMER _prepare_features)
+        X_train, X_test = self._align_features(X_train, X_test)
+        
+        # Entraînement
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)
-        if y_test is not None:
-            scores = {
-                'accuracy': accuracy_score(y_test, y_pred),
-                'precision': precision_score(y_test, y_pred),
-                'recall': recall_score(y_test, y_pred)
-            }
-            return y_pred, scores
-        return y_pred, None
+        
+        # Évaluation
+        scores = {
+            'accuracy': accuracy_score(y_test, y_pred),
+            'precision': precision_score(y_test, y_pred, zero_division=0),
+            'recall': recall_score(y_test, y_pred, zero_division=0)
+        }
+        
+        self.scores[model_name] = scores
+        return model, y_pred
 
     def logistic_model(self):
-        X_train = self.data_train.drop('Survived', axis=1)
-        y_train = self.data_train['Survived']
-        X_test = self.data_test.drop('Survived', axis=1)
-        y_test = self.data_test['Survived']
-        X_train = self._prepare_features(X_train)
-        X_test = self._prepare_features(X_test)
-        X_test = X_test.reindex(columns=X_train.columns, fill_value=0)
-
-        model = LogisticRegression(max_iter=2500, solver='lbfgs')
-        y_pred, scores = self._perform_and_evaluate(model, X_train, y_train, X_test, y_test)
-        if scores:
-            self.scores['LogisticRegression'] = scores
-        return model, y_pred
+        model = LogisticRegression(max_iter=1000, random_state=42)
+        return self._train_and_evaluate(model, 'LogisticRegression')
 
     def random_forest_model(self):
-        X_train = self.data_train.drop('Survived', axis=1)
-        y_train = self.data_train['Survived']
-        X_test = self.data_test.drop('Survived', axis=1)
-        y_test = self.data_test['Survived']
-        X_train = self._prepare_features(X_train)
-        X_test = self._prepare_features(X_test)
-        X_test = X_test.reindex(columns=X_train.columns, fill_value=0)
-
-        model = RandomForestClassifier()
-        y_pred, scores = self._perform_and_evaluate(model, X_train, y_train, X_test, y_test)
-        if scores:
-            self.scores['RandomForest'] = scores
-        return model, y_pred
+        model = RandomForestClassifier(random_state=42)
+        return self._train_and_evaluate(model, 'RandomForest')
 
     def SVM_model(self):
-        X_train = self.data_train.drop('Survived', axis=1)
-        y_train = self.data_train['Survived']
-        X_test = self.data_test.drop('Survived', axis=1)
-        y_test = self.data_test['Survived']
-        X_train = self._prepare_features(X_train)
-        X_test = self._prepare_features(X_test)
-        X_test = X_test.reindex(columns=X_train.columns, fill_value=0)
-
-        model = SVC(probability=True)
-        y_pred, scores = self._perform_and_evaluate(model, X_train, y_train, X_test, y_test)
-        if scores:
-            self.scores['SVM'] = scores
-        return model, y_pred
-
-    def _perform_and_evaluate(self, model, X_train, y_train, X_test, y_test):
-        model.fit(X_train, y_train)
-        y_pred = model.predict(X_test)
-        if y_test is not None:
-            return y_pred, {
-                'accuracy': accuracy_score(y_test, y_pred),
-                'precision': precision_score(y_test, y_pred),
-                'recall': recall_score(y_test, y_pred),
-            }
-        return y_pred, None
+        model = SVC(probability=True, random_state=42)
+        return self._train_and_evaluate(model, 'SVM')
 
     def get_scores(self):
         return self.scores
 
-# Usage dans le main
+# Usage inchangé dans le main
 if __name__ == "__main__":
     # Chargement et nettoyage
     processor_train = DataPreprocessor("data_titanic/train.csv")
@@ -98,12 +68,20 @@ if __name__ == "__main__":
     clean_train = processor_train.clean_data()
     clean_test = processor_test.clean_data()
 
+    # Récupérer les IDs des passagers de test
+    test_ids = processor_test.get_passenger_ids()
+
     # Fusion des résultats
     clean_test_with_labels = pd.merge(
-        clean_test,
+        test_ids.to_frame(),  # Convertir Series en DataFrame
         processor_res[['PassengerId', 'Survived']],
         on='PassengerId'
     )
+
+    clean_test_with_labels = pd.concat([
+        clean_test, 
+        clean_test_with_labels['Survived']
+    ], axis=1)
 
 
     # Modèle
@@ -114,4 +92,8 @@ if __name__ == "__main__":
 
     # Résultats
     scores = trainer.get_scores()
-    print(scores)
+    # Affichage
+    df_scores = print_model_scores(scores)
+    print_performance_analysis(scores)
+    plot_model_comparison(scores)
+    df_scores.to_csv('model_performance.csv')

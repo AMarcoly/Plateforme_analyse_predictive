@@ -115,6 +115,9 @@ class DataPreprocessor:
     def get_data(self):
         # Retourne les données nettoyées (None si clean_data() n'a pas été appelé)
         return self.cleaned_data
+    
+    def get_passenger_ids(self):
+        return self.passenger_ids
 
 if __name__ == "__main__":
     # Test

@@ -30,3 +30,5 @@ migrations/
 celerybeat-schedule
 instance/
 charge.md
+predictions.*
+model_performance.*
