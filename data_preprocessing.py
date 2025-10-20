@@ -12,9 +12,10 @@ class DataPreprocessor:
         # Initialisation de l'attribut pour stocker les données nettoyées
         self.cleaned_data = None
 
-    def clean_data(self):
+    def clean_data(self,for_training=True):
         # Création d'une copie des données brutes pour préserver l'original
         data_clean = self.data.copy()
+        passenger_ids = None
 
         # Suppression des doublons exacts (lignes identiques)
         data_clean.drop_duplicates(inplace=True)
@@ -63,14 +64,12 @@ class DataPreprocessor:
 
         # Extraction du pont (Deck) depuis la première lettre de 'Cabin'
         if 'Cabin' in data_clean.columns:
-            # Prend la première lettre de la cabine (ex: "C123" -> "C")
             data_clean['Deck'] = data_clean['Cabin'].astype(str).str[0]
-            # Normalise les valeurs 'n' et 'N' (créées par les NaN) en 'U' pour Unknown
             data_clean['Deck'] = data_clean['Deck'].replace({'n': 'U', 'N': 'U'})
-            # Remplace les valeurs manquantes par 'U'
             data_clean['Deck'] = data_clean['Deck'].fillna('U')
-            # Regroupe le pont 'T' (très rare) avec 'U'
-            data_clean['Deck'] = data_clean['Deck'].where(~data_clean['Deck'].isin(['T']), 'U')
+            # Regroupement des ponts rares : T avec U, F et G avec "Other"
+            deck_mapping = {'T': 'U', 'F': 'Other', 'G': 'Other'}
+            data_clean['Deck'] = data_clean['Deck'].replace(deck_mapping)
 
         #  Encodage binaire de la variable Sex (male: 0, female: 1)
         if 'Sex' in data_clean.columns:
@@ -84,7 +83,7 @@ class DataPreprocessor:
             data_clean['IsAlone'] = (data_clean['FamilySize'] == 1).astype(int)
 
         #  Suppression des colonnes peu informatives pour la modélisation
-        drop_cols = [c for c in ['Name','Ticket','Cabin'] if c in data_clean.columns]
+        drop_cols = [c for c in [ 'Name','Ticket','Cabin'] if c in data_clean.columns]
         if drop_cols:
             data_clean.drop(columns=drop_cols, inplace=True)
 
@@ -98,11 +97,20 @@ class DataPreprocessor:
                     data_clean[col] = data_clean[col].astype('category')
         
         # Application du one-hot encoding
-        data_clean = pd.get_dummies(data_clean, columns=categorical_columns, drop_first=True)
+        data_clean = pd.get_dummies(data_clean, columns=categorical_columns, drop_first=True,dtype=int)
 
-        # Stockeage  et retour DataFrame nettoyé
+        # afectation
         self.cleaned_data = data_clean
-        return self.cleaned_data
+
+        # Gestion ID
+        if for_training and 'PassengerId' in data_clean.columns:
+            self.passenger_ids = data_clean['PassengerId'].copy()  # Sauvegarde
+            data_clean.drop(columns=['PassengerId'], inplace=True)
+        else:
+            self.passenger_ids = None
+            
+        return data_clean
+
 
     def get_data(self):
         # Retourne les données nettoyées (None si clean_data() n'a pas été appelé)
@@ -111,6 +119,6 @@ class DataPreprocessor:
 if __name__ == "__main__":
     # Test
     data = DataPreprocessor("data_titanic/train.csv")
-    data.clean_data()
+    data.clean_data(False)
     print(data.get_data().head())
     print(data.get_data().info())
